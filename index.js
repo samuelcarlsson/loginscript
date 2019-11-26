@@ -13,6 +13,37 @@ app.get("/",function(req,res){
     res.send(req.cookies);
 });
 
+//auth, en middlewear, kontrollerar att man är inloggad
+app.get("/secret",auth,function(req,res){
+    res.send(req.cookies);
+});
+
+app.get("/logout",function(req,res){
+    res.cookie("token","hejdå")
+    res.redirect("/secret")
+})
+
+
+function auth(req,res,next){
+    //börjar kolla att cookie existerar
+    if(req.cookies.token){
+        jwt.verify(req.cookies.token,secret,function(err,token){
+            if(!err){
+                next()
+            }
+            else
+            {
+                res.send(err.message)
+            }
+        })
+
+    }
+    else
+    {
+        res.send("no token provided")
+    }
+}
+
 app.get("/login",function(req,res){
     res.sendFile(__dirname+"/loginform.html");
 });
@@ -37,10 +68,9 @@ app.post("/login",function(req,res){
 
         bcrypt.compare(req.body.password,user[0].password,function(err,success){
             if(success)
-            {
-               
-               jwt.sign({email:user[0].email},secret,{expiresIn:60}) 
-               res.cookie("token",true,{httpOnly:true,sameSite:"strict"})
+            {             //ger användare tillgång till en server  
+               const token = jwt.sign({email:user[0].email},secret,{expiresIn:60}) 
+               res.cookie("token",token,{httpOnly:true,sameSite:"strict"})
                res.send("login success!")
             }
             else
